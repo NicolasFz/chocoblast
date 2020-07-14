@@ -4,8 +4,8 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 
 SOCKET_LIST = {};
-var players = {};
-var chocoblasted = null;
+players = {};
+chocoblasted = null;
 
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/chocoblast/index.html');
@@ -32,9 +32,16 @@ io.sockets.on('connection', function(socket) {
         refreshPlayerList();
     });
 
+    // the socket is disconnected but we keep the player in memory
     socket.on('disconnect', function() {
         delete SOCKET_LIST[playerId];
-        // delete players[playerId];
+    });
+
+    // The player explicitly asked to be disconnected
+    socket.on('loggout', function() {
+        console.log('The player with ID : ' + playerId + ' log out');
+        delete players[playerId];
+        socket.disconnect();
     });
 
 });
@@ -42,7 +49,7 @@ io.sockets.on('connection', function(socket) {
 
 function handlePlayerConnection(socket) {
     if (socket.request._query['player-id'] != null) {
-        var playerId = socket.request._query['player-id'];
+        let playerId = socket.request._query['player-id'];
         if (players[playerId] != undefined) {
             reconnectPlayer(socket, players[playerId]);
             return playerId;
@@ -57,18 +64,16 @@ function handlePlayerConnection(socket) {
 function reconnectPlayer(socket, player) {
     console.log("Player " + player.pseudo + " is reconnected");
     SOCKET_LIST[player.id] = socket;
-    socket.emit('setPlayerId', player.id);
     socket.emit('pseudoSaved', player.pseudo);
-    socket.emit('playerConnected');
+    socket.emit('playerConnected', player.id);
 }
 
 function createANewPlayer(socket) {
     console.log("New player created");
-    var playerId = Math.random();
+    let playerId = Math.random();
     SOCKET_LIST[playerId] = socket;
     players[playerId] = { id: playerId, pseudo: 'anon', score: 0, move: null }
-    socket.emit('setPlayerId', playerId);
-    socket.emit('playerConnected');
+    socket.emit('playerConnected', playerId);
     return playerId;
 }
 
