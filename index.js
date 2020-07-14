@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+const Player = require('./src/Player.js')
 
 SOCKET_LIST = {};
 players = {};
@@ -21,7 +22,6 @@ console.log("Server started.");
 
 io.sockets.on('connection', function(socket) {
     var playerId = handlePlayerConnection(socket);
-
     // Refresh the list of player for each connected players
     refreshPlayerList();
 
@@ -46,7 +46,6 @@ io.sockets.on('connection', function(socket) {
 
 });
 
-
 function handlePlayerConnection(socket) {
     if (socket.request._query['player-id'] != null) {
         let playerId = socket.request._query['player-id'];
@@ -70,11 +69,11 @@ function reconnectPlayer(socket, player) {
 
 function createANewPlayer(socket) {
     console.log("New player created");
-    let playerId = Math.random();
-    SOCKET_LIST[playerId] = socket;
-    players[playerId] = { id: playerId, pseudo: 'anon', score: 0, move: null }
-    socket.emit('playerConnected', playerId);
-    return playerId;
+    let newPlayer = new Player(socket, 'anon');
+    SOCKET_LIST[newPlayer.id] = socket;
+    players[newPlayer.id] = newPlayer;
+    socket.emit('playerConnected', newPlayer.id);
+    return newPlayer.id;
 }
 
 function changeChocoblasted() {
@@ -83,14 +82,14 @@ function changeChocoblasted() {
         let chocoblastedId = playerIdList[Math.floor(Math.random() * playerIdList.length)];
         chocoblasted = players[chocoblastedId]
         console.log('The new chocoblasted is :' + chocoblasted.pseudo);
-        broadcastToPlayers('changeChocoblasted', chocoblasted)
+        broadcastToPlayers('changeChocoblasted', chocoblasted.pseudo)
     } else {
         console.log('Not enough player to start the chocoblasting');
     }
 }
 
 function refreshPlayerList() {
-    broadcastToPlayers('refreshPlayerList', players);
+    broadcastToPlayers('refreshPlayerList', getFormatedPlayerList());
 }
 
 function broadcastToPlayers(msg, data) {
@@ -98,6 +97,15 @@ function broadcastToPlayers(msg, data) {
         SOCKET_LIST[i].emit(msg, data);
     }
 }
+
+function getFormatedPlayerList() {
+    let playerList = {};
+    for (var i in players) {
+        playerList[i] = players[i].pseudo;
+    }
+    return playerList;
+}
+
 server.listen(4141);
 
 setInterval(function() {

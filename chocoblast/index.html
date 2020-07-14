@@ -69,12 +69,12 @@
                 socket.on('refreshPlayerList', function(data) {
                     playerList.innerHTML = '';
                     for (var playerId in data) {
-                        playerList.innerHTML += '<div class="player">' + data[playerId].pseudo + '</div>';
+                        playerList.innerHTML += '<div class="player">' + data[playerId] + '</div>';
                     }
                 });
 
                 socket.on('changeChocoblasted', function(data) {
-                    chocoblasted.innerHTML = '<div class="player">' + data.pseudo + '</div>';
+                    chocoblasted.innerHTML = '<div class="player">' + data + '</div>';
                 });
 
                 socket.on('playerConnected', function(data) {
